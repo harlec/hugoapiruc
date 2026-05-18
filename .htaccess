@@ -6,8 +6,15 @@ RewriteEngine On
 RewriteCond %{HTTPS} off
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+# Páginas públicas en /public/
+RewriteRule ^playground\.php$ public/playground.php [QSA,L]
+RewriteRule ^docs\.php$ public/docs.php [QSA,L]
+
 # Rutas de la API y health → public/index.php
 RewriteRule ^(api|health)(/.*)?$ public/index.php [QSA,L]
+
+# Bloquear acceso directo a directorios internos
+RewriteRule ^(src|config|cron|database|vendor|logs)/ - [F,L]
 
 # Headers de seguridad
 Header always set X-Content-Type-Options "nosniff"
