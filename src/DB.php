@@ -22,8 +22,13 @@ class DB
                     PDO::ATTR_EMULATE_PREPARES   => false,
                 ]);
             } catch (PDOException $e) {
-                http_response_code(500);
-                echo json_encode(['error' => 'Error de base de datos', 'code' => 'DB_ERROR']);
+                if (php_sapi_name() === 'cli') {
+                    echo "ERROR de conexión a MySQL: " . $e->getMessage() . "\n";
+                    echo "DSN: mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . "\n";
+                } else {
+                    http_response_code(500);
+                    echo json_encode(['error' => 'Error de base de datos', 'code' => 'DB_ERROR']);
+                }
                 exit;
             }
         }

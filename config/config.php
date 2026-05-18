@@ -18,12 +18,14 @@ define('DB_NAME', $_ENV['DB_NAME'] ?? 'perudata_api');
 define('DB_USER', $_ENV['DB_USER'] ?? 'root');
 define('DB_PASS', $_ENV['DB_PASS'] ?? '');
 
-// Headers de seguridad
-header('X-Content-Type-Options: nosniff');
-header('X-Frame-Options: DENY');
-header('X-XSS-Protection: 1; mode=block');
-if (!APP_DEBUG) {
-    header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+// Headers de seguridad (solo en contexto web)
+if (php_sapi_name() !== 'cli') {
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: DENY');
+    header('X-XSS-Protection: 1; mode=block');
+    if (!APP_DEBUG) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    }
 }
 
 // Alertas y servicios externos
