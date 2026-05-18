@@ -1,0 +1,17 @@
+{
+    "name": "aunor/perudata-api",
+    "description": "PERUdata API — SaaS Multi-Tenant para consulta de RUC/DNI en Perú",
+    "type": "project",
+    "require": {
+        "php": ">=8.1",
+        "vlucas/phpdotenv": "^5.6"
+    },
+    "autoload": {
+        "psr-4": {
+            "App\\": "src/"
+        }
+    },
+    "config": {
+        "optimize-autoloader": true
+    }
+}
