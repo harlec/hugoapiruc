@@ -1,0 +1,22 @@
+Options -Indexes
+
+RewriteEngine On
+
+# Forzar HTTPS
+RewriteCond %{HTTPS} off
+RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+# Rutas de la API y health → public/index.php
+RewriteRule ^(api|health)(/.*)?$ public/index.php [QSA,L]
+
+# Headers de seguridad
+Header always set X-Content-Type-Options "nosniff"
+Header always set X-Frame-Options "SAMEORIGIN"
+Header always set X-XSS-Protection "1; mode=block"
+Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+# Proteger archivos sensibles
+<FilesMatch "^(\.env|composer\.json|composer\.lock|schema\.sql)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
