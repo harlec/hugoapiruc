@@ -10,9 +10,14 @@ class TokenManager
      */
     public static function fromRequest(): ?string
     {
-        $header = $_SERVER['HTTP_AUTHORIZATION']
-            ?? apache_request_headers()['Authorization']
-            ?? '';
+        // Apache + PHP-FPM puede entregar el header en distintas variables
+        $header = $_SERVER['HTTP_AUTHORIZATION']           // estándar
+            ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']     // tras RewriteRule
+            ?? (function_exists('apache_request_headers')
+                ? (apache_request_headers()['Authorization']
+                   ?? apache_request_headers()['authorization']
+                   ?? '')
+                : '');
 
         if (preg_match('/^Bearer\s+(.+)$/i', trim($header), $m)) {
             return trim($m[1]);

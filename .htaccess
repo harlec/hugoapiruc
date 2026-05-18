@@ -2,6 +2,10 @@ Options -Indexes
 
 RewriteEngine On
 
+# ── CRÍTICO: pasar el header Authorization a PHP-FPM (Plesk/Apache lo bloquea por defecto)
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
+
 # Forzar HTTPS
 RewriteCond %{HTTPS} off
 RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
