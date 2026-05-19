@@ -44,12 +44,6 @@ $stmt->execute($params);
 $logs = $stmt->fetchAll();
 
 $tenants = $db->query("SELECT id, name FROM tenants ORDER BY name")->fetchAll();
-
-$statusClasses = [
-    'ok'         => 'bg-green-900/40 text-green-400',
-    'error'      => 'bg-red-900/40 text-red-400',
-    'rate_limit' => 'bg-yellow-900/40 text-yellow-400',
-];
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -57,121 +51,158 @@ $statusClasses = [
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Logs — PERÚdata Admin</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .filter-select {
+            background:var(--bg-hover);border:1px solid var(--border);color:var(--text-1);
+            border-radius:8px;padding:7px 10px;font-size:13px;outline:none;cursor:pointer;
+            transition:border-color 0.15s;
+        }
+        .filter-select:focus { border-color:var(--accent); }
+        .btn-filter {
+            background:var(--accent);color:#fff;border:none;border-radius:8px;
+            padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;transition:opacity 0.15s;
+        }
+        .btn-filter:hover { opacity:0.88; }
+        .btn-clear {
+            background:var(--bg-hover);color:var(--text-2);border:1px solid var(--border);
+            border-radius:8px;padding:7px 16px;font-size:13px;font-weight:600;cursor:pointer;
+            text-decoration:none;display:inline-flex;align-items:center;transition:background 0.15s;
+        }
+        .btn-clear:hover { background:var(--border); }
+        .status-dot {
+            width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px;flex-shrink:0;
+        }
+        .page-btn {
+            background:var(--bg-hover);border:1px solid var(--border);color:var(--text-2);
+            border-radius:8px;padding:6px 14px;font-size:13px;text-decoration:none;
+            transition:all 0.15s;display:inline-block;
+        }
+        .page-btn:hover { border-color:var(--accent);color:var(--accent); }
+    </style>
 </head>
-<body class="bg-gray-950 text-white flex">
+<body>
 <?php include __DIR__ . '/_sidebar.php'; ?>
-<main class="flex-1 ml-64 p-8">
 
-    <div class="flex items-center justify-between mb-8">
-        <div>
-            <h1 class="text-2xl font-bold">Logs de consultas</h1>
-            <p class="text-gray-400 text-sm mt-0.5"><?= number_format($totalRows) ?> registros</p>
+<div class="main-wrapper">
+    <header class="topbar">
+        <div style="flex:1;">
+            <h1 style="font-size:18px;font-weight:700;color:var(--text-1);">Logs de Consultas</h1>
+            <p style="font-size:12px;color:var(--text-2);margin-top:2px;"><?= number_format($totalRows) ?> registros encontrados</p>
         </div>
-    </div>
+    </header>
 
-    <!-- Filtros -->
-    <form method="GET" class="flex gap-3 mb-6">
-        <select name="tenant"
-            class="bg-gray-800 border border-gray-700 text-sm text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
-            <option value="0">Todos los tenants</option>
-            <?php foreach ($tenants as $t): ?>
-            <option value="<?= $t['id'] ?>" <?= $filter_tenant === $t['id'] ? 'selected' : '' ?>>
-                <?= htmlspecialchars($t['name']) ?>
-            </option>
-            <?php endforeach; ?>
-        </select>
-        <select name="type"
-            class="bg-gray-800 border border-gray-700 text-sm text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
-            <option value="">RUC + DNI</option>
-            <option value="ruc" <?= $filter_type === 'ruc' ? 'selected' : '' ?>>Solo RUC</option>
-            <option value="dni" <?= $filter_type === 'dni' ? 'selected' : '' ?>>Solo DNI</option>
-        </select>
-        <select name="status"
-            class="bg-gray-800 border border-gray-700 text-sm text-white rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500">
-            <option value="">Todos los estados</option>
-            <option value="ok" <?= $filter_status === 'ok' ? 'selected' : '' ?>>OK</option>
-            <option value="error" <?= $filter_status === 'error' ? 'selected' : '' ?>>Error</option>
-            <option value="rate_limit" <?= $filter_status === 'rate_limit' ? 'selected' : '' ?>>Rate Limit</option>
-        </select>
-        <button type="submit"
-            class="bg-red-600 hover:bg-red-500 text-white text-sm font-medium px-4 py-2 rounded-xl transition-colors">
-            Filtrar
-        </button>
-        <a href="/admin/logs.php"
-            class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm font-medium px-4 py-2 rounded-xl transition-colors">
-            Limpiar
-        </a>
-    </form>
+    <main class="main-content">
 
-    <!-- Tabla -->
-    <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden mb-5">
-        <table class="w-full text-sm">
-            <thead>
-                <tr class="border-b border-gray-800 text-gray-400 text-xs uppercase tracking-wider">
-                    <th class="text-left p-4">Fecha</th>
-                    <th class="text-left p-4">Tenant</th>
-                    <th class="text-left p-4">Tipo</th>
-                    <th class="text-left p-4">Valor</th>
-                    <th class="text-left p-4">Estado</th>
-                    <th class="text-left p-4">Fuente</th>
-                    <th class="text-left p-4">Ms</th>
-                    <th class="text-left p-4">IP</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-800">
-                <?php foreach ($logs as $log): ?>
-                <tr class="hover:bg-gray-800/50 transition-colors">
-                    <td class="p-4 text-gray-400 text-xs font-mono whitespace-nowrap">
-                        <?= date('d/m H:i:s', strtotime($log['created_at'])) ?>
-                    </td>
-                    <td class="p-4 text-gray-300 text-xs"><?= htmlspecialchars($log['tenant_name']) ?></td>
-                    <td class="p-4">
-                        <span class="font-mono text-xs bg-gray-800 px-1.5 py-0.5 rounded text-gray-300">
-                            <?= strtoupper($log['query_type'] ?? '') ?>
-                        </span>
-                    </td>
-                    <td class="p-4 font-mono text-xs"><?= htmlspecialchars($log['query_value'] ?? '') ?></td>
-                    <td class="p-4">
-                        <span class="px-2 py-0.5 rounded-full text-xs <?= $statusClasses[$log['status']] ?? '' ?>">
-                            <?= $log['status'] ?>
-                        </span>
-                    </td>
-                    <td class="p-4 text-gray-500 text-xs"><?= $log['from_cache'] ? '💾 caché' : '🌐 scraping' ?></td>
-                    <td class="p-4 text-gray-400 text-xs"><?= $log['response_ms'] ?>ms</td>
-                    <td class="p-4 text-gray-600 text-xs font-mono"><?= htmlspecialchars($log['ip_address'] ?? '') ?></td>
-                </tr>
+        <!-- Filtros -->
+        <form method="GET" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
+            <select name="tenant" class="filter-select">
+                <option value="0">Todos los tenants</option>
+                <?php foreach ($tenants as $t): ?>
+                <option value="<?= $t['id'] ?>" <?= $filter_tenant === $t['id'] ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($t['name']) ?>
+                </option>
                 <?php endforeach; ?>
-                <?php if (empty($logs)): ?>
-                <tr><td colspan="8" class="p-8 text-center text-gray-600">Sin registros</td></tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
+            </select>
 
-    <!-- Paginación -->
-    <?php if ($totalPages > 1): ?>
-    <div class="flex items-center justify-between">
-        <span class="text-xs text-gray-500">
-            Página <?= $page ?> de <?= $totalPages ?> (<?= number_format($totalRows) ?> registros)
-        </span>
-        <div class="flex gap-2">
-            <?php if ($page > 1): ?>
-            <a href="?page=<?= $page - 1 ?>&tenant=<?= $filter_tenant ?>&type=<?= $filter_type ?>&status=<?= $filter_status ?>"
-                class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-3 py-1.5 rounded-xl transition-colors">
-                ← Anterior
-            </a>
-            <?php endif; ?>
-            <?php if ($page < $totalPages): ?>
-            <a href="?page=<?= $page + 1 ?>&tenant=<?= $filter_tenant ?>&type=<?= $filter_type ?>&status=<?= $filter_status ?>"
-                class="bg-gray-800 hover:bg-gray-700 text-gray-300 text-sm px-3 py-1.5 rounded-xl transition-colors">
-                Siguiente →
-            </a>
-            <?php endif; ?>
+            <select name="type" class="filter-select">
+                <option value="">RUC + DNI</option>
+                <option value="ruc" <?= $filter_type === 'ruc' ? 'selected' : '' ?>>Solo RUC</option>
+                <option value="dni" <?= $filter_type === 'dni' ? 'selected' : '' ?>>Solo DNI</option>
+            </select>
+
+            <select name="status" class="filter-select">
+                <option value="">Todos los estados</option>
+                <option value="ok"         <?= $filter_status === 'ok'         ? 'selected' : '' ?>>OK</option>
+                <option value="error"      <?= $filter_status === 'error'      ? 'selected' : '' ?>>Error</option>
+                <option value="rate_limit" <?= $filter_status === 'rate_limit' ? 'selected' : '' ?>>Rate Limit</option>
+            </select>
+
+            <button type="submit" class="btn-filter">Filtrar</button>
+            <a href="/admin/logs.php" class="btn-clear">Limpiar</a>
+        </form>
+
+        <!-- Tabla -->
+        <div class="card" style="overflow:hidden;margin-bottom:16px;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Tiempo</th>
+                        <th>Tenant</th>
+                        <th>Tipo</th>
+                        <th>Número consultado</th>
+                        <th>Origen</th>
+                        <th>Estado</th>
+                        <th style="text-align:right;">MS</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($logs as $log):
+                        [$dotColor, $pillBg, $pillColor] = match($log['status']) {
+                            'ok'         => ['#22c55e', 'rgba(34,197,94,0.1)',  '#16a34a'],
+                            'error'      => ['#ef4444', 'rgba(239,68,68,0.1)',  '#dc2626'],
+                            'rate_limit' => ['#f59e0b', 'rgba(245,158,11,0.1)','#d97706'],
+                            default      => ['#94a3b8', 'rgba(148,163,184,0.1)','#64748b'],
+                        };
+                    ?>
+                    <tr>
+                        <td style="font-family:monospace;font-size:12px;color:var(--text-2);white-space:nowrap;">
+                            <?= date('d/m H:i:s', strtotime($log['created_at'])) ?>
+                        </td>
+                        <td style="font-size:13px;color:var(--text-2);"><?= htmlspecialchars($log['tenant_name']) ?></td>
+                        <td>
+                            <span class="pill" style="background:var(--bg-hover);color:var(--text-2);font-family:monospace;">
+                                <?= strtoupper($log['query_type'] ?? '') ?>
+                            </span>
+                        </td>
+                        <td style="font-family:monospace;font-size:13px;"><?= htmlspecialchars($log['query_value'] ?? '') ?></td>
+                        <td style="font-size:12px;color:var(--text-3);">
+                            <?= $log['from_cache'] ? 'caché' : 'live' ?>
+                        </td>
+                        <td>
+                            <span style="display:inline-flex;align-items:center;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:<?= $pillBg ?>;color:<?= $pillColor ?>;">
+                                <span class="status-dot" style="background:<?= $dotColor ?>;"></span>
+                                <?= $log['status'] ?>
+                            </span>
+                        </td>
+                        <td style="text-align:right;font-size:12px;color:var(--text-2);font-family:monospace;">
+                            <?= $log['response_ms'] ?>
+                        </td>
+                        <td style="font-family:monospace;font-size:11px;color:var(--text-3);">
+                            <?= htmlspecialchars($log['ip_address'] ?? '') ?>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                    <?php if (empty($logs)): ?>
+                    <tr>
+                        <td colspan="8" style="text-align:center;padding:40px;color:var(--text-3);">
+                            Sin registros con los filtros actuales.
+                        </td>
+                    </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
         </div>
-    </div>
-    <?php endif; ?>
 
-</main>
+        <!-- Paginación -->
+        <?php if ($totalPages > 1): ?>
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:var(--text-3);">
+                Página <?= $page ?> de <?= $totalPages ?> — <?= number_format($totalRows) ?> registros
+            </span>
+            <div style="display:flex;gap:8px;">
+                <?php $qs = http_build_query(['tenant'=>$filter_tenant,'type'=>$filter_type,'status'=>$filter_status]); ?>
+                <?php if ($page > 1): ?>
+                <a href="?page=<?= $page - 1 ?>&<?= $qs ?>" class="page-btn">← Anterior</a>
+                <?php endif; ?>
+                <?php if ($page < $totalPages): ?>
+                <a href="?page=<?= $page + 1 ?>&<?= $qs ?>" class="page-btn">Siguiente →</a>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
+    </main>
+</div>
 </body>
 </html>
