@@ -137,7 +137,11 @@ if (!$result['success']) {
 }
 
 // ── Guardar en caché & responder ──────────────────────────────────────────────
-$ttl = (int)($tenant['cache_ttl_hours'] ?? 24);
+// RUC cambia muy poco → caché mínimo 72h para reducir requests a SUNAT
+// DNI respeta el TTL del plan (default 24h)
+$ttl = $type === 'ruc'
+    ? max(72, (int)($tenant['cache_ttl_hours'] ?? 72))
+    : (int)($tenant['cache_ttl_hours'] ?? 24);
 $cache->set($type, $value, $result['data'], $result['source'], $ttl);
 
 $ms = (int)round((microtime(true) - $start) * 1000);
