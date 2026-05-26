@@ -21,7 +21,7 @@ class PadronScraper
             return ['success' => false, 'data' => null, 'source' => null];
         }
 
-        $pdo  = DB::getInstance();
+        $pdo  = DB::connection();
         $stmt = $pdo->prepare(
             'SELECT ruc, razon_social, tipo_contribu, estado, condicion,
                     departamento, provincia, distrito, ubigeo, direccion, actividad
@@ -44,7 +44,7 @@ class PadronScraper
     private function tablExists(): bool
     {
         try {
-            DB::getInstance()->query('SELECT 1 FROM ruc_padron LIMIT 1');
+            DB::connection()->query('SELECT 1 FROM ruc_padron LIMIT 1');
             return true;
         } catch (\Throwable $e) {
             return false;

@@ -21,6 +21,9 @@
 
 declare(strict_types=1);
 
+// Mostrar todos los errores en CLI para diagnosticar problemas
+error_reporting(E_ALL);
+ini_set('display_errors', '1');
 ini_set('memory_limit', '512M');
 set_time_limit(0);
 
@@ -59,8 +62,46 @@ function abort(string $msg, \PDO $pdo = null, int $importId = 0): never {
     exit(1);
 }
 
-// ── Verificar si ya se importó hoy ───────────────────────────────────────────
-$pdo = DB::getInstance();
+// ── Conectar a DB y auto-crear tablas si no existen ──────────────────────────
+$pdo = DB::connection();
+log_msg("Conectado a la base de datos.");
+
+// Auto-crear tablas si no existen (evita error si no se corrió la migración)
+$pdo->exec("
+    CREATE TABLE IF NOT EXISTS ruc_padron (
+        ruc             CHAR(11)        NOT NULL,
+        razon_social    VARCHAR(250)    NOT NULL DEFAULT '',
+        tipo_contribu   VARCHAR(100)    NOT NULL DEFAULT '',
+        estado          VARCHAR(50)     NOT NULL DEFAULT '',
+        condicion       VARCHAR(50)     NOT NULL DEFAULT '',
+        departamento    VARCHAR(80)     NOT NULL DEFAULT '',
+        provincia       VARCHAR(80)     NOT NULL DEFAULT '',
+        distrito        VARCHAR(80)     NOT NULL DEFAULT '',
+        ubigeo          VARCHAR(10)     NOT NULL DEFAULT '',
+        direccion       VARCHAR(300)    NOT NULL DEFAULT '',
+        actividad       VARCHAR(300)    NOT NULL DEFAULT '',
+        updated_at      DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP
+                        ON UPDATE CURRENT_TIMESTAMP,
+        PRIMARY KEY (ruc),
+        INDEX idx_razon (razon_social(50))
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+");
+
+$pdo->exec("
+    CREATE TABLE IF NOT EXISTS padron_imports (
+        id              INT AUTO_INCREMENT PRIMARY KEY,
+        filename        VARCHAR(200)    NOT NULL,
+        total_rows      INT             DEFAULT 0,
+        imported_rows   INT             DEFAULT 0,
+        started_at      DATETIME        NOT NULL,
+        finished_at     DATETIME        NULL,
+        error           TEXT            NULL,
+        INDEX idx_started (started_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+");
+log_msg("Tablas verificadas/creadas.");
+
+// ── Verificar si ya se importó recientemente ─────────────────────────────────
 
 if (!$force && !$localFile) {
     $last = $pdo->query(

@@ -21,20 +21,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 }
 
 // ── Datos del padrón ──────────────────────────────────────────────────────────
-$pdo = App\DB::getInstance();
+// $db ya viene de _layout.php (DB::connection())
 
 // Total en padrón
 $total = 0;
 $lastUpdate = null;
 try {
-    $total      = (int)$pdo->query('SELECT COUNT(*) FROM ruc_padron')->fetchColumn();
-    $lastUpdate = $pdo->query('SELECT MAX(updated_at) FROM ruc_padron')->fetchColumn();
+    $total      = (int)$db->query('SELECT COUNT(*) FROM ruc_padron')->fetchColumn();
+    $lastUpdate = $db->query('SELECT MAX(updated_at) FROM ruc_padron')->fetchColumn();
 } catch (\Throwable $e) {}
 
 // Historial de importaciones
 $imports = [];
 try {
-    $imports = $pdo->query(
+    $imports = $db->query(
         'SELECT * FROM padron_imports ORDER BY started_at DESC LIMIT 10'
     )->fetchAll(\PDO::FETCH_ASSOC);
 } catch (\Throwable $e) {}
@@ -47,7 +47,7 @@ foreach ($imports as $imp) {
 
 // Estadísticas de uso del padrón vs backup
 try {
-    $srcStats = $pdo->query(
+    $srcStats = $db->query(
         "SELECT source, COUNT(*) as cnt FROM usage_log
          WHERE created_at >= NOW() - INTERVAL 7 DAY AND type='ruc'
          GROUP BY source ORDER BY cnt DESC"
