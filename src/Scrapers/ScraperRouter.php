@@ -24,13 +24,14 @@ class ScraperRouter
     private function getSources(string $type): array
     {
         if ($type === 'ruc') {
-            // Estrategia API-first: no tocamos SUNAT hasta que todo lo demás falle.
-            // BackupScraper usa apis.net.pe (JSON, sin scraping).
-            // RucScraper es el último recurso (scraping directo a SUNAT).
-            return [new BackupScraper(), new RucScraper()];
+            // Cascada RUC (de más a menos confiable):
+            // 1. PadronScraper  — tu propia DB local. <5ms, sin Internet, sin ban.
+            // 2. BackupScraper  — apis.net.pe (API JSON, no scraping a SUNAT).
+            // 3. RucScraper     — scraping directo a SUNAT. Último recurso.
+            return [new PadronScraper(), new BackupScraper(), new RucScraper()];
         }
 
-        // DNI: cascade definido dentro de DniScraper (apis.net.pe → apiperu.dev → eldni.com)
+        // DNI: cascade dentro de DniScraper ya maneja apis.net.pe → apiperu.dev → eldni.com
         return [new DniScraper()];
     }
 }
