@@ -262,16 +262,35 @@ while (($line = fgets($handle)) !== false) {
     $estado      = mb_substr(trim($cols[3] ?? ''), 0, 50);
     $condicion   = mb_substr(trim($cols[4] ?? ''), 0, 50);
 
-    // Columns 5-16: dirección desglosada
+    // Columns 5-18: dirección desglosada (formato padrón SUNAT)
     $ubigeo      = trim($cols[5]  ?? '');
-    $viaTipo     = trim($cols[6]  ?? '');
-    $viaNom      = trim($cols[7]  ?? '');
-    $nro         = trim($cols[10] ?? '');
+    $viaTipo     = trim($cols[6]  ?? '');   // AV, JR, CAL, PJE...
+    $viaNom      = trim($cols[7]  ?? '');   // nombre de la vía
+    $zonaCod     = trim($cols[8]  ?? '');   // código de zona (URB, ASOC...)
+    $zonaTipo    = trim($cols[9]  ?? '');   // tipo de zona
+    $nro         = trim($cols[10] ?? '');   // número
+    $interior    = trim($cols[11] ?? '');   // interior (INT 3, PISO 2...)
+    $lote        = trim($cols[12] ?? '');   // lote
+    $dptoDirc    = trim($cols[13] ?? '');   // dpto dentro del edificio
+    $manzana     = trim($cols[14] ?? '');   // manzana
+    $km          = trim($cols[15] ?? '');   // km
     $depto       = mb_substr(trim($cols[16] ?? ''), 0, 80);
     $prov        = mb_substr(trim($cols[17] ?? ''), 0, 80);
     $dist        = mb_substr(trim($cols[18] ?? ''), 0, 80);
 
-    $direccion   = mb_substr(trim("$viaTipo $viaNom $nro"), 0, 300);
+    // Construir dirección completa con todos los campos no vacíos
+    $partesDir = array_filter([
+        $viaTipo,
+        $viaNom,
+        $nro    ? "NRO $nro"        : '',
+        $interior ? "INT $interior" : '',
+        $manzana  ? "MZA $manzana"  : '',
+        $lote     ? "LOTE $lote"    : '',
+        $dptoDirc ? "DPTO $dptoDirc": '',
+        $km       ? "KM $km"        : '',
+        $zonaTipo ? "$zonaTipo $zonaCod" : '',
+    ]);
+    $direccion = mb_substr(implode(' ', $partesDir), 0, 300);
 
     if (!preg_match('/^\d{11}$/', $ruc)) { $skipped++; continue; }
 
